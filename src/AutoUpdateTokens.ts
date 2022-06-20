@@ -1,6 +1,6 @@
 // import fs from "fs";
 const { GraphQLClient, gql } = require("graphql-request");
-const fs = require('fs')
+const fs = require("fs");
 const oceanAddresses = {
   1: "0x967da4048cD07aB37855c090aAF366e4ce1b9F48",
   4: "0x8967bcf84170c91b0d24d4302c2376283b0b3a07",
@@ -44,9 +44,8 @@ interface SingleTokenInfo extends Hit {
  * @returns
  */
 
-async function getTokenData(chainId: number, accumulator?: number | null, globalList?: Hit[]): Promise<any> {
+async function getTokenData(chainId: number, skip: number = 0, globalList?: Hit[]): Promise<any> {
   let paginationValue: number = 500;
-  if (!accumulator) accumulator = 0;
   if (!globalList) globalList = [];
 
   const endpoint = `https://v4.subgraph.${chains[chainId]}.oceanprotocol.com/subgraphs/name/oceanprotocol/ocean-subgraph`;
@@ -55,7 +54,7 @@ async function getTokenData(chainId: number, accumulator?: number | null, global
 
   const query = gql`
     {
-      tokens(where: { isDatatoken: true }, first: 1000) {
+      tokens(where: { isDatatoken: true }, first: 1000, skip:${skip}) {
         symbol
         decimals
         address
@@ -75,9 +74,9 @@ async function getTokenData(chainId: number, accumulator?: number | null, global
     const response = await graphQLClient.request(query);
     const total: number = response.tokens.length;
     globalList.push(response.tokens);
-    accumulator += paginationValue;
-    if (total > accumulator) {
-      await getTokenData(chainId, accumulator, globalList);
+    skip += paginationValue;
+    if (total === 1000) {
+      await getTokenData(chainId, skip, globalList);
     }
     return await Promise.resolve(globalList.flat());
   } catch (error) {
